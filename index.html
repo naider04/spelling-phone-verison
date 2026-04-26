@@ -549,18 +549,14 @@
             listeningActive = false;
           }
           onCorrectSpelling();
-        } else {
-          // WRONG: store the spoken attempt into history (above transcription box)
-          onWrongSpelling(spokenRaw);
-          // After wrong attempt, we don't reset recognition; we restart it in onend to keep listening
-          // Manually stop and restart for clean new attempt session
-          if (recognition) {
-            try { recognition.stop(); } catch(e) {}
-            listeningActive = false;
+        } } else {
+  // WRONG: store the spoken attempt into history
+  onWrongSpelling(spokenRaw);
+  // Keep listening automatically after mistake - don't stop recognition
+  // Just let it continue, no need to stop/restart
+  // recognition remains active, user can immediately try again
+  // The 'listeningActive' flag stays true
           }
-          // will restart after onend triggers
-        }
-      }
     };
 
     recognition.onerror = (e) => {
