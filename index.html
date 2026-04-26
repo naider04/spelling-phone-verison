@@ -71,21 +71,6 @@
       min-height: 55px;
     }
 
-    #transcriptionHistory {
-      font-size: 20px;
-      margin-top: 15px;
-      padding: 15px;
-      background: #fff8e7;
-      border-radius: 30px;
-      color: #2c3e66;
-      border: 2px solid #ffd966;
-      font-family: monospace;
-      word-break: break-word;
-      min-height: 80px;
-      font-weight: bold;
-      letter-spacing: 1px;
-    }
-
     .status-badge {
       display: inline-block;
       background: #2c3e66;
@@ -131,15 +116,6 @@
       text-align: left;
       padding-left: 10px;
     }
-
-    .clear-btn {
-      background: #8b5e3c;
-      box-shadow: 0 4px 0 #5a3a22;
-      font-size: 14px;
-      padding: 8px 16px;
-      margin-top: 10px;
-      margin-left: 10px;
-    }
   </style>
 </head>
 <body>
@@ -148,16 +124,12 @@
   <h1>🔊 Spell the word</h1>
   <div id="word">-</div>
   
-  <div class="label">📝 Your spelling attempt (builds over time):</div>
-  <div id="transcriptionHistory">💬 Nothing said yet...</div>
-  
-  <div class="label">🗣️ Live transcription (interim):</div>
+  <div class="label">🗣️ Real-time transcription:</div>
   <div id="liveTranscription">💬 Waiting for speech...</div>
   
   <div id="heard">🎤 Tap "Start Listening" to begin</div>
   
   <button id="startMicBtn" class="mic-button">🎙️ Start Listening</button>
-  <button id="clearHistoryBtn" class="clear-btn">🗑️ Clear History</button>
   <br>
   <button onclick="resetListening()">🔄 New Word / Reset</button>
 </div>
@@ -180,31 +152,14 @@
   let recognition = null;
   let listeningActive = false;
   let resetGuard = false;
-  
-  // Store accumulated transcription for the current attempt
-  let accumulatedText = "";
 
   const wordElement = document.getElementById("word");
   const heardElement = document.getElementById("heard");
   const liveTranscriptionElement = document.getElementById("liveTranscription");
-  const transcriptionHistoryElement = document.getElementById("transcriptionHistory");
-  
   wordElement.innerText = currentWord;
 
   function getRandomWord() {
     return words[Math.floor(Math.random() * words.length)];
-  }
-
-  // Clear accumulated history
-  function clearHistory() {
-    accumulatedText = "";
-    transcriptionHistoryElement.innerHTML = "💬 Nothing said yet...";
-    liveTranscriptionElement.innerHTML = "💬 History cleared";
-    setTimeout(() => {
-      if (!listeningActive) {
-        liveTranscriptionElement.innerHTML = "💬 Waiting for speech...";
-      }
-    }, 1000);
   }
 
   // ========== ENHANCED PHONETIC CONFUSION GROUPS ==========
@@ -358,7 +313,7 @@
     return false;
   }
 
-  // ========== START LISTENING WITH ACCUMULATION ==========
+  // ========== START LISTENING (SIMPLE VERSION - NO ACCUMULATION) ==========
   function startListening() {
     if (resetGuard) return;
     
@@ -377,12 +332,12 @@
     recognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = true;
-    recognition.continuous = true; // Changed to true for continuous listening
+    recognition.continuous = false;
     
     recognition.onstart = () => {
       listeningActive = true;
-      heardElement.innerText = "🎤 Listening... Speak the spelling (stay silent to finalize each chunk)";
-      liveTranscriptionElement.innerText = "💬 Say something...";
+      heardElement.innerText = "🎤 Listening... Speak the spelling";
+      liveTranscriptionElement.innerText = "💬 Say each letter...";
     };
     
     recognition.onresult = (event) => {
@@ -398,39 +353,24 @@
         }
       }
       
-      // Show interim results (real-time)
-      if (interimTranscript) {
-        liveTranscriptionElement.innerHTML = "🎤 Speaking: " + interimTranscript.toLowerCase();
+      // Show real-time transcription (interim + final)
+      let fullText = (interimTranscript + finalTranscript).toLowerCase().trim();
+      if (fullText) {
+        liveTranscriptionElement.innerHTML = "🗣️ " + fullText;
       } else {
-        liveTranscriptionElement.innerHTML = "💬 Waiting...";
+        liveTranscriptionElement.innerHTML = "💬 Listening...";
       }
       
-      // When we get final transcript, APPEND it to accumulated text
+      // Process final result for validation
       if (finalTranscript) {
-        let cleanFinal = finalTranscript.toLowerCase().trim();
+        let transcript = finalTranscript.toLowerCase().trim();
+        heardElement.innerHTML = "👂 \"" + transcript + "\"";
         
-        // Append to accumulated text (add space if needed)
-        if (accumulatedText) {
-          accumulatedText += " " + cleanFinal;
-        } else {
-          accumulatedText = cleanFinal;
-        }
-        
-        // Update the history display
-        transcriptionHistoryElement.innerHTML = "📝 " + accumulatedText;
-        
-        // Check if the accumulated text matches the word
-        if (isSpellingMatch(accumulatedText, currentWord)) {
+        if (isSpellingMatch(transcript, currentWord)) {
           heardElement.innerHTML = "✅ Correct! Next word...";
-          transcriptionHistoryElement.innerHTML = "🎉 CORRECT! Moving to next word...";
           liveTranscriptionElement.innerHTML = "🎉 Correct! Getting new word...";
-          
           currentWord = getRandomWord();
           wordElement.innerText = currentWord;
-          
-          // Clear accumulated text for the new word
-          accumulatedText = "";
-          transcriptionHistoryElement.innerHTML = "💬 New word. Start spelling...";
           
           if (recognition) {
             recognition.stop();
@@ -438,18 +378,20 @@
           }
           setTimeout(() => {
             if (!resetGuard) startListening();
-          }, 800);
+          }, 500);
         } else {
-          // Don't clear the history - keep building
-          heardElement.innerHTML = "👂 Added: \"" + cleanFinal + "\" | Keep going or tap reset to start over";
-          liveTranscriptionElement.innerHTML = "✅ Added to history. Keep spelling...";
-          
-          // Reset interim display after a moment
+          // Show hint with expected spelling pattern
+          let hint = currentWord.split('').join(' ');
+          if (currentWord.toLowerCase().startsWith('im')) {
+            hint = "Try: i am " + currentWord.substring(2).split('').join(' ') + " or just spell the letters";
+          }
+          heardElement.innerHTML = "❌ Try again. Say: " + hint;
+          liveTranscriptionElement.innerHTML = "❌ Try: " + hint;
           setTimeout(() => {
-            if (listeningActive) {
-              liveTranscriptionElement.innerHTML = "💬 Listening for more...";
+            if (listeningActive && !resetGuard && recognition) {
+              try { recognition.start(); } catch(e) {}
             }
-          }, 1500);
+          }, 1200);
         }
       }
     };
@@ -461,10 +403,10 @@
         liveTranscriptionElement.innerText = "❌ Microphone access required";
       } else if (e.error === 'no-speech') {
         heardElement.innerText = "🎤 No speech heard. Tap and speak clearly.";
-        liveTranscriptionElement.innerHTML = "💬 No speech detected - try again";
+        liveTranscriptionElement.innerText = "💬 No speech detected";
       } else {
         heardElement.innerText = "🎤 Mic error. Tap Start again.";
-        liveTranscriptionElement.innerHTML = "⚠️ Error, please try again";
+        liveTranscriptionElement.innerText = "⚠️ Error, please try again";
       }
       listeningActive = false;
     };
@@ -475,9 +417,9 @@
           if (listeningActive && !resetGuard && recognition) {
             try { recognition.start(); } catch(e) {}
           }
-        }, 300);
-      } else if (!resetGuard && !listeningActive && !accumulatedText) {
-        liveTranscriptionElement.innerHTML = "💬 Ready. Tap Start to spell.";
+        }, 200);
+      } else if (!resetGuard && !listeningActive) {
+        liveTranscriptionElement.innerText = "💬 Ready. Tap Start to spell.";
       }
     };
     
@@ -492,14 +434,10 @@
       listeningActive = false;
     }
     heardElement.innerText = "🔄 Resetting...";
-    liveTranscriptionElement.innerHTML = "💬 Resetting...";
-    transcriptionHistoryElement.innerHTML = "💬 Clearing history...";
-    
+    liveTranscriptionElement.innerText = "💬 Resetting...";
     setTimeout(() => {
       currentWord = getRandomWord();
       wordElement.innerText = currentWord;
-      accumulatedText = ""; // Clear accumulated text
-      transcriptionHistoryElement.innerHTML = "💬 Nothing said yet...";
       resetGuard = false;
       listeningActive = false;
       startListening();
@@ -512,19 +450,11 @@
       heardElement.innerText = "🎤 Already listening!";
       return;
     }
-    // Reset accumulated text when starting fresh
-    accumulatedText = "";
-    transcriptionHistoryElement.innerHTML = "💬 Nothing said yet...";
     startListening();
   });
   
-  document.getElementById("clearHistoryBtn").addEventListener("click", () => {
-    clearHistory();
-  });
-  
   heardElement.innerText = "🎤 Tap 'Start Listening' and spell the word letter by letter";
-  liveTranscriptionElement.innerHTML = "💬 Ready. Tap Start to spell.";
-  transcriptionHistoryElement.innerHTML = "💬 Nothing said yet...";
+  liveTranscriptionElement.innerText = "💬 Ready. Tap Start to spell.";
 </script>
 </body>
 </html>
