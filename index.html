@@ -463,8 +463,14 @@
     // stop current recognition to avoid overlap
     if (recognition) {
       try { recognition.stop(); } catch(e) {}
-      listeningActive = false;
     }
+    
+    // force restart after wrong attempt (same behavior as correct)
+    setTimeout(() => {
+      if (!resetGuard) {
+        startListening();
+      }
+    }, 400);
     // restart listening after short delay
     setTimeout(() => {
       if (!resetGuard) {
