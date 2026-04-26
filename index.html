@@ -482,7 +482,8 @@
     let hintMsg = getHintMessage(currentWord);
     heardElement.innerHTML = `❌ Not correct. ${hintMsg}`;
     liveTranscriptionElement.innerHTML = `⚠️ “${spokenTranscript}” — try again`;
-    // Keep microphone active - no stop/restart needed
+    // keep listening automatically — recognition will restart but we don't stop continuous
+    // However, recognition may have ended after result; we will ensure it keeps running in onend
   }
 
   // ---------- SPEECH RECOGNITION SETUP ----------
@@ -504,7 +505,7 @@
     recognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = true;
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
@@ -544,15 +545,20 @@
         if (isCorrect) {
           // CORRECT: reset mistake history, get new word, auto-restart
           if (recognition) {
-            recognition.stop();
+            recognition.stop(); // stop current session to avoid double calls
             listeningActive = false;
           }
           onCorrectSpelling();
         } else {
-          // WRONG: store the spoken attempt into history
+          // WRONG: store the spoken attempt into history (above transcription box)
           onWrongSpelling(spokenRaw);
-          // Keep listening automatically - recognition stays active
-          // The microphone remains on for the next attempt
+          // After wrong attempt, we don't reset recognition; we restart it in onend to keep listening
+          // Manually stop and restart for clean new attempt session
+          if (recognition) {
+            try { recognition.stop(); } catch(e) {}
+            listeningActive = false;
+          }
+          // will restart after onend triggers
         }
       }
     };
@@ -562,33 +568,35 @@
       if (e.error === 'not-allowed') {
         heardElement.innerText = "🎤 Microphone blocked. Allow access and retry.";
         liveTranscriptionElement.innerText = "❌ Mic permission denied";
-        listeningActive = false;
       } else if (e.error === 'no-speech') {
-        heardElement.innerText = "🎤 No speech detected. Keep speaking.";
-        liveTranscriptionElement.innerText = "💬 No speech detected";
-        // Don't set listeningActive to false, just continue
+        heardElement.innerText = "🎤 No speech detected. Tap and speak clearly.";
+        liveTranscriptionElement.innerText = "💬 No speech";
       } else {
         heardElement.innerText = "🎤 Mic error. Tap Start again.";
         liveTranscriptionElement.innerText = "⚠️ Recognition error";
-        listeningActive = false;
       }
+      listeningActive = false;
     };
 
     recognition.onend = () => {
-      // Only restart if we're still supposed to be listening and not resetting
       if (listeningActive && !resetGuard) {
+        // if we were supposed to be active (after wrong/correct restart logic we may set flag)
         setTimeout(() => {
           if (listeningActive && !resetGuard && recognition) {
             try { recognition.start(); } catch(e) {}
           }
-        }, 100);
+        }, 150);
+      } else if (!resetGuard && !listeningActive && document.getElementById("startMicBtn")) {
+        // idle state
+        liveTranscriptionElement.innerHTML = "💬 Ready. Tap Start to spell.";
       }
     };
 
     recognition.start();
   }
 
-  // ---------- NEW WORD (manual) ----------
+  // ---------- NEW WORD (manual) same as resetting word without clearing history BUT also resets mistake log? 
+  // According to intention: "New Word / Reset" replaced with New Word button. Should reset mis-spelling history because new word brings fresh start.
   function manualNewWord() {
     if (resetGuard) return;
     resetGuard = true;
@@ -605,6 +613,7 @@
     liveTranscriptionElement.innerText = "💬 Ready for new word";
     resetGuard = false;
     listeningActive = false;
+    // not automatically starting — user can press mic
   }
 
   // ========== EVENT LISTENERS ==========
