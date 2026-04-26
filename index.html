@@ -135,39 +135,17 @@
 </div>
 
 <script>
-  // ================= ONLY 10 WORDS =================
+  // ================= WORD LIST (added improve and predicament) =================
   const words = [
-    "Accurate", "Acknowledgment", "Acquaintance", "Activity", "Adventure", "Always",
-    "Ambiguous", "Answer", "Anxious", "Apprehensive", "Architecture", "Articulate",
-    "Assertive", "Assimilate", "Astonishing", "Autonomous", "Balance", "Benevolent",
-    "Between", "Biochemistry", "Book", "Bored", "Bottle", "Boy", "Break", "Brevity",
-    "Calendar", "Camouflage", "Camouflage", "Capricious", "Career", "Challenge",
-    "Children", "Close", "Coherence", "Colloquial", "Complete", "Compliance",
-    "Computer", "Conscientious", "Conscientious", "Control", "Controversial",
-    "Controversial", "Convoluted", "Country", "Curious", "Decide", "Dehydration",
-    "Dilemma", "Disappearance", "Discover", "Discrepancy", "Divulge", "Eloquent",
-    "Embarrassing", "Empirical", "Encounter", "Energy", "Enigmatic", "Environmentally",
-    "Ephemeral", "Exaggeration", "Face", "Fairness", "Famous", "Father", "Feel",
-    "Filmmaker", "Finger", "Flabbergasted", "Flower", "Focus", "Foster", "Friend",
-    "Gate", "Gather", "Handkerchief", "Help", "Honest", "Hypothetical", "Hypothetical",
-    "Imagine", "Impeccable", "Importune", "Improve", "Independence", "Indispensable",
-    "Ineffable", "Irreplaceable", "Journey", "Judgemental", "Knowledge", "Knowledgeable",
-    "Language", "Look", "Make", "Member", "Message", "Meticulous", "Misunderstood",
-    "Monday", "Movie", "Nature", "Near", "Neighborhood", "Night", "Notebook", "Notice",
-    "Observe", "Obsolete", "Often", "Outside", "Overwhelming", "Package", "Paradox",
-    "Patient", "Pencil", "People", "Perfect", "Perseverance", "Plausible", "Play",
-    "Please", "Popular", "Potato", "Practice", "Pragmatic", "Predicament", "Prepare",
-    "Present", "Protect", "Provide", "Psychologist", "Quarantine", "Quickly", "Reason",
-    "Recommendable", "Redundant", "Reiterate", "Resilient", "Respect", "Result", "Rich",
-    "School", "Secret", "Serious", "Shoes", "Small", "Sophisticated", "Speak", "Special",
-    "Spontaneous", "Spoon", "Sport", "Strong", "Student", "Subtle", "Suggest", "Talent",
-    "Taxonomy", "Teacher", "Think", "Travel", "Tree", "Unbelievable", "Unnecessary",
-    "Useful", "Vacation", "Wash", "Water", "Welcome", "Wisdom", "Yesterday"
+    "Accurate", "Book", "Computer", "Friend", "Language",
+    "Practice", "School", "Teacher", "Water", "Wisdom",
+    "Improve", "Predicament"
   ];
 
-  // Simple variants (optional, kept for flexibility)
   const variants = {
-    "practice": ["practice","practise"]
+    "practice": ["practice","practise"],
+    "improve": ["improve"],
+    "predicament": ["predicament"]
   };
 
   let currentWord = getRandomWord();
@@ -184,50 +162,184 @@
     return words[Math.floor(Math.random() * words.length)];
   }
 
-  // ========== SIMPLE, MOBILE-FRIENDLY MATCHING ==========
+  // ========== ENHANCED PHONETIC CONFUSION GROUPS ==========
+  // Groups of letters that sound similar (expanded for better recognition)
+  function getConfusionGroup(letter) {
+    const groups = {
+      'b': ['b', 'p', 'v', 'd'],
+      'p': ['p', 'b', 'v', 'd'],
+      'v': ['v', 'b', 'p', 'd'],
+      'd': ['d', 't', 'v', 'b'],
+      't': ['t', 'd'],
+      'm': ['m', 'n'],
+      'n': ['n', 'm'],
+      'f': ['f', 'v'],
+      'c': ['c', 'k', 'q'],
+      'k': ['k', 'c', 'q'],
+      'q': ['q', 'c', 'k'],
+      's': ['s', 'z'],
+      'z': ['z', 's'],
+      'g': ['g', 'j'],
+      'j': ['j', 'g']
+    };
+    return groups[letter] || [letter];
+  }
+
+  function isSimilarLetter(a, b) {
+    if (a === b) return true;
+    const groupA = getConfusionGroup(a);
+    return groupA.includes(b);
+  }
+
+  function compareLetterSequences(spoken, target) {
+    if (spoken.length !== target.length) return false;
+    for (let i = 0; i < spoken.length; i++) {
+      if (!isSimilarLetter(spoken[i], target[i])) return false;
+    }
+    return true;
+  }
+
+  // ========== ENHANCED NORMALIZATION ==========
   function normalizeText(str) {
     return str.toLowerCase().trim().replace(/[^a-z]/g, '');
   }
 
-  function isSpellingMatch(transcript, targetWord) {
-    let possibleTargets = variants[targetWord.toLowerCase()] || [targetWord];
-    let cleanTranscript = normalizeText(transcript);
+  // Special handling for "i am" + letters and "im" + letters
+  function handleImPattern(transcript, targetWord) {
+    const lowerTarget = targetWord.toLowerCase();
     
-    for (let tgt of possibleTargets) {
-      let cleanTarget = normalizeText(tgt);
-      
-      // Direct match (letters only)
-      if (cleanTranscript === cleanTarget) return true;
-      
-      // Allow "the a c c u r a t e" → "accurate"
-      let wordsOnly = transcript.toLowerCase().split(/\s+/);
-      let extracted = wordsOnly.map(w => w[0]).join('');
-      if (extracted === cleanTarget) return true;
-      
-      // Basic letter-name mapping (B = bee, C = cee, etc.)
-      let letterMap = {
-        "bee":"b","cee":"c","dee":"d","gee":"g","jay":"j","kay":"k",
-        "pee":"p","cue":"q","are":"r","ess":"s","tee":"t","you":"u",
-        "vee":"v","double":"w","ex":"x","why":"y","zee":"z","aitch":"h",
-        "en":"n","em":"m","oh":"o","eff":"f","ell":"l","eye":"i","see":"c"
-      };
-      let decoded = wordsOnly.map(w => letterMap[w] || w).join('');
-      if (normalizeText(decoded) === cleanTarget) return true;
+    // Pattern 1: "i am p r o v e" → "improve"
+    const iamMatch = transcript.match(/^\s*i\s+am\s+(.+)$/i);
+    if (iamMatch) {
+      let afterIam = iamMatch[1].trim();
+      let letters = afterIam.split(/\s+/).map(part => part[0].toLowerCase()).join('');
+      let expectedLetters = lowerTarget.substring(2); // remove "im"
+      if (compareLetterSequences(letters.split(''), expectedLetters.split(''))) {
+        return true;
+      }
+    }
+    
+    // Pattern 2: "i m p r o v e" (letters only, no "am")
+    const imMatch = transcript.match(/^\s*i\s+m\s+(.+)$/i);
+    if (imMatch) {
+      let afterIm = imMatch[1].trim();
+      let letters = afterIm.split(/\s+/).map(part => part[0].toLowerCase()).join('');
+      let expectedLetters = lowerTarget.substring(2); // remove "im"
+      if (compareLetterSequences(letters.split(''), expectedLetters.split(''))) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  // Handle generic patterns like "the a c c u r a t e" → "accurate"
+  function handleThePattern(transcript, targetWord) {
+    const theMatch = transcript.match(/^\s*the\s+(.+)$/i);
+    if (theMatch) {
+      let afterThe = theMatch[1].trim();
+      let letters = afterThe.split(/\s+/).map(part => part[0].toLowerCase()).join('');
+      let expectedLetters = targetWord.toLowerCase();
+      if (compareLetterSequences(letters.split(''), expectedLetters.split(''))) {
+        return true;
+      }
     }
     return false;
   }
 
-  // ========== START LISTENING (explicit user gesture required on mobile) ==========
+  // Handle generic letter-by-letter spelling with possible "the" at beginning
+  function handleLetterByLetterSpelling(transcript, targetWord) {
+    // Remove any leading "the" if present
+    let cleanTranscript = transcript.replace(/^\s*the\s+/i, '').trim();
+    let spokenLetters = cleanTranscript.split(/\s+/).map(part => part[0].toLowerCase());
+    let targetLetters = targetWord.toLowerCase().split('');
+    
+    if (spokenLetters.length === targetLetters.length) {
+      if (compareLetterSequences(spokenLetters, targetLetters)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  // Letter name mapping (bee → b, cee → c, etc.)
+  function decodeLetterNames(transcript) {
+    const letterMap = {
+      "bee":"b", "cee":"c", "dee":"d", "gee":"g", "jay":"j", "kay":"k",
+      "pee":"p", "cue":"q", "are":"r", "ess":"s", "tee":"t", "you":"u",
+      "vee":"v", "double":"w", "ex":"x", "why":"y", "zee":"z", "zed":"z",
+      "aitch":"h", "en":"n", "em":"m", "oh":"o", "eff":"f", "ell":"l", "eye":"i", "see":"c",
+      "double-u":"w"
+    };
+    
+    let words = transcript.toLowerCase().split(/\s+/);
+    let decoded = words.map(w => letterMap[w] || w).join('');
+    return decoded;
+  }
+
+  // ========== MAIN MATCHING FUNCTION ==========
+  function isSpellingMatch(transcript, targetWord) {
+    let possibleTargets = variants[targetWord.toLowerCase()] || [targetWord];
+    let cleanTranscriptFull = transcript.toLowerCase().trim();
+    
+    for (let tgt of possibleTargets) {
+      let lowerTgt = tgt.toLowerCase();
+      
+      // 1. Direct exact match
+      if (normalizeText(cleanTranscriptFull) === lowerTgt) return true;
+      
+      // 2. "i am p r o v e" or "i m p r o v e" pattern for words starting with "im"
+      if (lowerTgt.startsWith('im') && handleImPattern(cleanTranscriptFull, lowerTgt)) {
+        return true;
+      }
+      
+      // 3. "the a c c u r a t e" pattern for any word
+      if (handleThePattern(cleanTranscriptFull, lowerTgt)) {
+        return true;
+      }
+      
+      // 4. Simple letter-by-letter spelling (each word's first letter)
+      if (handleLetterByLetterSpelling(cleanTranscriptFull, lowerTgt)) {
+        return true;
+      }
+      
+      // 5. Letter name decoding (bee, cee, dee, etc.)
+      let decodedLetters = decodeLetterNames(cleanTranscriptFull);
+      if (normalizeText(decodedLetters) === lowerTgt) return true;
+      
+      // 6. Direct letter sequence comparison (no spaces)
+      let spokenLettersNoSpaces = cleanTranscriptFull.replace(/\s+/g, '').toLowerCase();
+      if (spokenLettersNoSpaces.length === lowerTgt.length) {
+        if (compareLetterSequences(spokenLettersNoSpaces.split(''), lowerTgt.split(''))) {
+          return true;
+        }
+      }
+      
+      // 7. First letters of words in transcript (flexible pattern with possible "the")
+      let wordsOnly = cleanTranscriptFull.split(/\s+/);
+      // Skip first word if it's "the" for this check too
+      let startIdx = (wordsOnly[0] === 'the') ? 1 : 0;
+      let extracted = wordsOnly.slice(startIdx).map(w => w[0]).join('');
+      if (extracted.length === lowerTgt.length) {
+        if (compareLetterSequences(extracted.split(''), lowerTgt.split(''))) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
+  // ========== START LISTENING ==========
   function startListening() {
     if (resetGuard) return;
     
-    // Stop any existing recognition
     if (recognition) {
       try { recognition.stop(); } catch(e) {}
       listeningActive = false;
     }
     
-    // Check for browser support
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       heardElement.innerText = "❌ Your browser doesn't support voice recognition. Try Chrome or Safari.";
@@ -237,8 +349,8 @@
     
     recognition = new SpeechRecognition();
     recognition.lang = "en-US";
-    recognition.interimResults = true;  // Allows real-time updates
-    recognition.continuous = false;  // Better for mobile
+    recognition.interimResults = true;
+    recognition.continuous = false;
     
     recognition.onstart = () => {
       listeningActive = true;
@@ -259,7 +371,6 @@
         }
       }
       
-      // Show real-time transcription (interim + final)
       let fullText = (interimTranscript + finalTranscript).toLowerCase().trim();
       if (fullText) {
         liveTranscriptionElement.innerHTML = "🗣️ " + fullText;
@@ -267,7 +378,6 @@
         liveTranscriptionElement.innerHTML = "💬 Listening...";
       }
       
-      // Process final result for validation
       if (finalTranscript) {
         let transcript = finalTranscript.toLowerCase().trim();
         heardElement.innerHTML = "👂 \"" + transcript + "\"";
@@ -278,7 +388,6 @@
           currentWord = getRandomWord();
           wordElement.innerText = currentWord;
           
-          // Stop and restart for next word
           if (recognition) {
             recognition.stop();
             listeningActive = false;
@@ -287,8 +396,12 @@
             if (!resetGuard) startListening();
           }, 500);
         } else {
-          heardElement.innerHTML = "❌ Try again. Say: " + currentWord.split('').join(' ');
-          // Keep live transcription visible, don't clear it
+          // Show hint with expected spelling pattern
+          let hint = currentWord.split('').join(' ');
+          if (currentWord.toLowerCase().startsWith('im')) {
+            hint = "Try: i am " + currentWord.substring(2).split('').join(' ') + " or just spell the letters";
+          }
+          heardElement.innerHTML = "❌ Try again. Say: " + hint;
           setTimeout(() => {
             if (listeningActive && !resetGuard && recognition) {
               try { recognition.start(); } catch(e) {}
@@ -315,7 +428,6 @@
     
     recognition.onend = () => {
       if (listeningActive && !resetGuard) {
-        // Small delay before restarting
         setTimeout(() => {
           if (listeningActive && !resetGuard && recognition) {
             try { recognition.start(); } catch(e) {}
@@ -347,9 +459,8 @@
     }, 200);
   }
   
-  // ========== USER MUST TAP BUTTON FIRST (required for mobile mic permission) ==========
+  // ========== INITIALIZATION ==========
   document.getElementById("startMicBtn").addEventListener("click", () => {
-    // Prevent multiple starts
     if (listeningActive && recognition) {
       heardElement.innerText = "🎤 Already listening!";
       return;
@@ -357,7 +468,6 @@
     startListening();
   });
   
-  // Optional: show initial instruction
   heardElement.innerText = "🎤 Tap 'Start Listening' and spell the word letter by letter";
   liveTranscriptionElement.innerText = "💬 Ready. Tap Start to spell.";
 </script>
