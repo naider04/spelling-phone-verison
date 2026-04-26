@@ -71,17 +71,6 @@
       min-height: 55px;
     }
 
-    #hintMessage {
-      font-size: 16px;
-      margin-top: 8px;
-      padding: 8px 12px;
-      background: #fff3cd;
-      border-radius: 30px;
-      color: #856404;
-      border: 1px solid #ffeaa7;
-      min-height: 45px;
-    }
-
     .status-badge {
       display: inline-block;
       background: #2c3e66;
@@ -135,11 +124,8 @@
   <h1>🔊 Spell the word</h1>
   <div id="word">-</div>
   
-  <div class="label">🗣️ What you said:</div>
+  <div class="label">🗣️ Real-time transcription:</div>
   <div id="liveTranscription">💬 Waiting for speech...</div>
-  
-  <div class="label">💡 Hint:</div>
-  <div id="hintMessage"></div>
   
   <div id="heard">🎤 Tap "Start Listening" to begin</div>
   
@@ -149,7 +135,7 @@
 </div>
 
 <script>
-  // ================= WORD LIST =================
+  // ================= WORD LIST (added improve and predicament) =================
   const words = [
     "Accurate", "Acknowledgment", "Acquaintance", "Activity", "Adventure", "Always",
     "Ambiguous", "Answer", "Anxious", "Apprehensive", "Architecture", "Articulate",
@@ -193,7 +179,6 @@
   const wordElement = document.getElementById("word");
   const heardElement = document.getElementById("heard");
   const liveTranscriptionElement = document.getElementById("liveTranscription");
-  const hintMessageElement = document.getElementById("hintMessage");
   wordElement.innerText = currentWord;
 
   function getRandomWord() {
@@ -201,6 +186,7 @@
   }
 
   // ========== ENHANCED PHONETIC CONFUSION GROUPS ==========
+  // Groups of letters that sound similar (expanded for better recognition)
   function getConfusionGroup(letter) {
     const groups = {
       'b': ['b', 'p', 'v', 'd'],
@@ -236,28 +222,32 @@
     return true;
   }
 
+  // ========== ENHANCED NORMALIZATION ==========
   function normalizeText(str) {
     return str.toLowerCase().trim().replace(/[^a-z]/g, '');
   }
 
+  // Special handling for "i am" + letters and "im" + letters
   function handleImPattern(transcript, targetWord) {
     const lowerTarget = targetWord.toLowerCase();
     
+    // Pattern 1: "i am p r o v e" → "improve"
     const iamMatch = transcript.match(/^\s*i\s+am\s+(.+)$/i);
     if (iamMatch) {
       let afterIam = iamMatch[1].trim();
       let letters = afterIam.split(/\s+/).map(part => part[0].toLowerCase()).join('');
-      let expectedLetters = lowerTarget.substring(2);
+      let expectedLetters = lowerTarget.substring(2); // remove "im"
       if (compareLetterSequences(letters.split(''), expectedLetters.split(''))) {
         return true;
       }
     }
     
+    // Pattern 2: "i m p r o v e" (letters only, no "am")
     const imMatch = transcript.match(/^\s*i\s+m\s+(.+)$/i);
     if (imMatch) {
       let afterIm = imMatch[1].trim();
       let letters = afterIm.split(/\s+/).map(part => part[0].toLowerCase()).join('');
-      let expectedLetters = lowerTarget.substring(2);
+      let expectedLetters = lowerTarget.substring(2); // remove "im"
       if (compareLetterSequences(letters.split(''), expectedLetters.split(''))) {
         return true;
       }
@@ -266,6 +256,7 @@
     return false;
   }
 
+  // Handle generic patterns like "the a c c u r a t e" → "accurate"
   function handleThePattern(transcript, targetWord) {
     const theMatch = transcript.match(/^\s*the\s+(.+)$/i);
     if (theMatch) {
@@ -279,7 +270,9 @@
     return false;
   }
 
+  // Handle generic letter-by-letter spelling with possible "the" at beginning
   function handleLetterByLetterSpelling(transcript, targetWord) {
+    // Remove any leading "the" if present
     let cleanTranscript = transcript.replace(/^\s*the\s+/i, '').trim();
     let spokenLetters = cleanTranscript.split(/\s+/).map(part => part[0].toLowerCase());
     let targetLetters = targetWord.toLowerCase().split('');
@@ -293,6 +286,7 @@
     return false;
   }
 
+  // Letter name mapping (bee → b, cee → c, etc.)
   function decodeLetterNames(transcript) {
     const letterMap = {
       "bee":"b", "cee":"c", "dee":"d", "gee":"g", "jay":"j", "kay":"k",
@@ -307,6 +301,7 @@
     return decoded;
   }
 
+  // ========== MAIN MATCHING FUNCTION ==========
   function isSpellingMatch(transcript, targetWord) {
     let possibleTargets = variants[targetWord.toLowerCase()] || [targetWord];
     let cleanTranscriptFull = transcript.toLowerCase().trim();
@@ -314,23 +309,29 @@
     for (let tgt of possibleTargets) {
       let lowerTgt = tgt.toLowerCase();
       
+      // 1. Direct exact match
       if (normalizeText(cleanTranscriptFull) === lowerTgt) return true;
       
+      // 2. "i am p r o v e" or "i m p r o v e" pattern for words starting with "im"
       if (lowerTgt.startsWith('im') && handleImPattern(cleanTranscriptFull, lowerTgt)) {
         return true;
       }
       
+      // 3. "the a c c u r a t e" pattern for any word
       if (handleThePattern(cleanTranscriptFull, lowerTgt)) {
         return true;
       }
       
+      // 4. Simple letter-by-letter spelling (each word's first letter)
       if (handleLetterByLetterSpelling(cleanTranscriptFull, lowerTgt)) {
         return true;
       }
       
+      // 5. Letter name decoding (bee, cee, dee, etc.)
       let decodedLetters = decodeLetterNames(cleanTranscriptFull);
       if (normalizeText(decodedLetters) === lowerTgt) return true;
       
+      // 6. Direct letter sequence comparison (no spaces)
       let spokenLettersNoSpaces = cleanTranscriptFull.replace(/\s+/g, '').toLowerCase();
       if (spokenLettersNoSpaces.length === lowerTgt.length) {
         if (compareLetterSequences(spokenLettersNoSpaces.split(''), lowerTgt.split(''))) {
@@ -338,7 +339,9 @@
         }
       }
       
+      // 7. First letters of words in transcript (flexible pattern with possible "the")
       let wordsOnly = cleanTranscriptFull.split(/\s+/);
+      // Skip first word if it's "the" for this check too
       let startIdx = (wordsOnly[0] === 'the') ? 1 : 0;
       let extracted = wordsOnly.slice(startIdx).map(w => w[0]).join('');
       if (extracted.length === lowerTgt.length) {
@@ -362,7 +365,7 @@
     
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      heardElement.innerText = "❌ Your browser doesn't support voice recognition.";
+      heardElement.innerText = "❌ Your browser doesn't support voice recognition. Try Chrome or Safari.";
       liveTranscriptionElement.innerText = "❌ Browser not supported";
       return;
     }
@@ -376,7 +379,6 @@
       listeningActive = true;
       heardElement.innerText = "🎤 Listening... Speak the spelling";
       liveTranscriptionElement.innerText = "💬 Say each letter...";
-      hintMessageElement.innerText = "";
     };
     
     recognition.onresult = (event) => {
@@ -392,21 +394,20 @@
         }
       }
       
-      // Show real-time transcription (interim + final) - THIS STAYS VISIBLE
       let fullText = (interimTranscript + finalTranscript).toLowerCase().trim();
       if (fullText) {
-        liveTranscriptionElement.innerHTML = "🗣️ \"" + fullText + "\"";
+        liveTranscriptionElement.innerHTML = "🗣️ " + fullText;
+      } else {
+        liveTranscriptionElement.innerHTML = "💬 Listening...";
       }
       
-      // Process final result for validation
       if (finalTranscript) {
         let transcript = finalTranscript.toLowerCase().trim();
-        heardElement.innerHTML = "✅ Heard: \"" + transcript + "\"";
+        heardElement.innerHTML = "👂 \"" + transcript + "\"";
         
         if (isSpellingMatch(transcript, currentWord)) {
           heardElement.innerHTML = "✅ Correct! Next word...";
-          liveTranscriptionElement.innerHTML = "🎉 Correct! +10 points!";
-          hintMessageElement.innerText = "";
+          liveTranscriptionElement.innerHTML = "🎉 Correct! Getting new word...";
           currentWord = getRandomWord();
           wordElement.innerText = currentWord;
           
@@ -418,13 +419,17 @@
             if (!resetGuard) startListening();
           }, 500);
         } else {
-          // Show hint WITHOUT clearing what the user said
+          // Show hint with expected spelling pattern
           let hint = currentWord.split('').join(' ');
           if (currentWord.toLowerCase().startsWith('im')) {
-            hint = "i am " + currentWord.substring(2).split('').join(' ');
+            hint = "Try: i am " + currentWord.substring(2).split('').join(' ') + " or just spell the letters";
           }
-          hintMessageElement.innerHTML = "💡 Try: " + hint;
-          // DO NOT overwrite liveTranscription - keep showing what they said
+          heardElement.innerHTML = "❌ Try again. Say: " + hint;
+          setTimeout(() => {
+            if (listeningActive && !resetGuard && recognition) {
+              try { recognition.start(); } catch(e) {}
+            }
+          }, 1200);
         }
       }
     };
@@ -432,13 +437,14 @@
     recognition.onerror = (e) => {
       console.log(e.error);
       if (e.error === 'not-allowed') {
-        heardElement.innerText = "🎤 Microphone access denied.";
-        liveTranscriptionElement.innerText = "❌ Please allow microphone access";
+        heardElement.innerText = "🎤 Microphone access denied. Please allow mic and try again.";
+        liveTranscriptionElement.innerText = "❌ Microphone access required";
       } else if (e.error === 'no-speech') {
-        heardElement.innerText = "🎤 No speech heard. Try again.";
-        // Don't clear transcription
+        heardElement.innerText = "🎤 No speech heard. Tap and speak clearly.";
+        liveTranscriptionElement.innerText = "💬 No speech detected";
       } else {
         heardElement.innerText = "🎤 Mic error. Tap Start again.";
+        liveTranscriptionElement.innerText = "⚠️ Error, please try again";
       }
       listeningActive = false;
     };
@@ -450,6 +456,8 @@
             try { recognition.start(); } catch(e) {}
           }
         }, 200);
+      } else if (!resetGuard && !listeningActive) {
+        liveTranscriptionElement.innerText = "💬 Ready. Tap Start to spell.";
       }
     };
     
@@ -465,7 +473,6 @@
     }
     heardElement.innerText = "🔄 Resetting...";
     liveTranscriptionElement.innerText = "💬 Resetting...";
-    hintMessageElement.innerText = "";
     setTimeout(() => {
       currentWord = getRandomWord();
       wordElement.innerText = currentWord;
@@ -481,12 +488,10 @@
       heardElement.innerText = "🎤 Already listening!";
       return;
     }
-    liveTranscriptionElement.innerText = "💬 Listening...";
-    hintMessageElement.innerText = "";
     startListening();
   });
   
-  heardElement.innerText = "🎤 Tap 'Start Listening' to begin";
+  heardElement.innerText = "🎤 Tap 'Start Listening' and spell the word letter by letter";
   liveTranscriptionElement.innerText = "💬 Ready. Tap Start to spell.";
 </script>
 </body>
