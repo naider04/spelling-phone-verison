@@ -71,6 +71,17 @@
       min-height: 55px;
     }
 
+    #hintMessage {
+      font-size: 16px;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #fff3cd;
+      border-radius: 30px;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+      min-height: 45px;
+    }
+
     .status-badge {
       display: inline-block;
       background: #2c3e66;
@@ -124,8 +135,11 @@
   <h1>🔊 Spell the word</h1>
   <div id="word">-</div>
   
-  <div class="label">🗣️ Real-time transcription:</div>
+  <div class="label">🗣️ What you said:</div>
   <div id="liveTranscription">💬 Waiting for speech...</div>
+  
+  <div class="label">💡 Hint:</div>
+  <div id="hintMessage"></div>
   
   <div id="heard">🎤 Tap "Start Listening" to begin</div>
   
@@ -137,32 +151,9 @@
 <script>
   // ================= WORD LIST =================
   const words = [
-    "Accurate", "Acknowledgment", "Acquaintance", "Activity", "Adventure", "Always",
-    "Ambiguous", "Answer", "Anxious", "Apprehensive", "Architecture", "Articulate",
-    "Assertive", "Assimilate", "Astonishing", "Autonomous", "Balance", "Benevolent",
-    "Between", "Biochemistry", "Book", "Bored", "Bottle", "Boy", "Break", "Brevity",
-    "Calendar", "Camouflage", "Camouflage", "Capricious", "Career", "Challenge",
-    "Children", "Close", "Coherence", "Colloquial", "Complete", "Compliance",
-    "Computer", "Conscientious", "Conscientious", "Control", "Controversial",
-    "Controversial", "Convoluted", "Country", "Curious", "Decide", "Dehydration",
-    "Dilemma", "Disappearance", "Discover", "Discrepancy", "Divulge", "Eloquent",
-    "Embarrassing", "Empirical", "Encounter", "Energy", "Enigmatic", "Environmentally",
-    "Ephemeral", "Exaggeration", "Face", "Fairness", "Famous", "Father", "Feel",
-    "Filmmaker", "Finger", "Flabbergasted", "Flower", "Focus", "Foster", "Friend",
-    "Gate", "Gather", "Handkerchief", "Help", "Honest", "Hypothetical", "Hypothetical",
-    "Imagine", "Impeccable", "Importune", "Improve", "Independence", "Indispensable",
-    "Ineffable", "Irreplaceable", "Journey", "Judgemental", "Knowledge", "Knowledgeable",
-    "Language", "Look", "Make", "Member", "Message", "Meticulous", "Misunderstood",
-    "Monday", "Movie", "Nature", "Near", "Neighborhood", "Night", "Notebook", "Notice",
-    "Observe", "Obsolete", "Often", "Outside", "Overwhelming", "Package", "Paradox",
-    "Patient", "Pencil", "People", "Perfect", "Perseverance", "Plausible", "Play",
-    "Please", "Popular", "Potato", "Practice", "Pragmatic", "Predicament", "Prepare",
-    "Present", "Protect", "Provide", "Psychologist", "Quarantine", "Quickly", "Reason",
-    "Recommendable", "Redundant", "Reiterate", "Resilient", "Respect", "Result", "Rich",
-    "School", "Secret", "Serious", "Shoes", "Small", "Sophisticated", "Speak", "Special",
-    "Spontaneous", "Spoon", "Sport", "Strong", "Student", "Subtle", "Suggest", "Talent",
-    "Taxonomy", "Teacher", "Think", "Travel", "Tree", "Unbelievable", "Unnecessary",
-    "Useful", "Vacation", "Wash", "Water", "Welcome", "Wisdom", "Yesterday"
+    "Accurate", "Book", "Computer", "Friend", "Language",
+    "Practice", "School", "Teacher", "Water", "Wisdom",
+    "Improve", "Predicament"
   ];
 
   const variants = {
@@ -179,6 +170,7 @@
   const wordElement = document.getElementById("word");
   const heardElement = document.getElementById("heard");
   const liveTranscriptionElement = document.getElementById("liveTranscription");
+  const hintMessageElement = document.getElementById("hintMessage");
   wordElement.innerText = currentWord;
 
   function getRandomWord() {
@@ -336,7 +328,7 @@
     return false;
   }
 
-  // ========== START LISTENING (SIMPLE VERSION - NO ACCUMULATION) ==========
+  // ========== START LISTENING ==========
   function startListening() {
     if (resetGuard) return;
     
@@ -347,7 +339,7 @@
     
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      heardElement.innerText = "❌ Your browser doesn't support voice recognition. Try Chrome or Safari.";
+      heardElement.innerText = "❌ Your browser doesn't support voice recognition.";
       liveTranscriptionElement.innerText = "❌ Browser not supported";
       return;
     }
@@ -361,6 +353,7 @@
       listeningActive = true;
       heardElement.innerText = "🎤 Listening... Speak the spelling";
       liveTranscriptionElement.innerText = "💬 Say each letter...";
+      hintMessageElement.innerText = "";
     };
     
     recognition.onresult = (event) => {
@@ -376,22 +369,21 @@
         }
       }
       
-      // Show real-time transcription (interim + final)
+      // Show real-time transcription (interim + final) - THIS STAYS VISIBLE
       let fullText = (interimTranscript + finalTranscript).toLowerCase().trim();
       if (fullText) {
-        liveTranscriptionElement.innerHTML = "🗣️ " + fullText;
-      } else {
-        liveTranscriptionElement.innerHTML = "💬 Listening...";
+        liveTranscriptionElement.innerHTML = "🗣️ \"" + fullText + "\"";
       }
       
       // Process final result for validation
       if (finalTranscript) {
         let transcript = finalTranscript.toLowerCase().trim();
-        heardElement.innerHTML = "👂 \"" + transcript + "\"";
+        heardElement.innerHTML = "✅ Heard: \"" + transcript + "\"";
         
         if (isSpellingMatch(transcript, currentWord)) {
           heardElement.innerHTML = "✅ Correct! Next word...";
-          liveTranscriptionElement.innerHTML = "🎉 Correct! Getting new word...";
+          liveTranscriptionElement.innerHTML = "🎉 Correct! +10 points!";
+          hintMessageElement.innerText = "";
           currentWord = getRandomWord();
           wordElement.innerText = currentWord;
           
@@ -403,18 +395,13 @@
             if (!resetGuard) startListening();
           }, 500);
         } else {
-          // Show hint with expected spelling pattern
+          // Show hint WITHOUT clearing what the user said
           let hint = currentWord.split('').join(' ');
           if (currentWord.toLowerCase().startsWith('im')) {
-            hint = "Try: i am " + currentWord.substring(2).split('').join(' ') + " or just spell the letters";
+            hint = "i am " + currentWord.substring(2).split('').join(' ');
           }
-          heardElement.innerHTML = "❌ Try again. Say: " + hint;
-          liveTranscriptionElement.innerHTML = "❌ Try: " + hint;
-          setTimeout(() => {
-            if (listeningActive && !resetGuard && recognition) {
-              try { recognition.start(); } catch(e) {}
-            }
-          }, 1200);
+          hintMessageElement.innerHTML = "💡 Try: " + hint;
+          // DO NOT overwrite liveTranscription - keep showing what they said
         }
       }
     };
@@ -422,14 +409,13 @@
     recognition.onerror = (e) => {
       console.log(e.error);
       if (e.error === 'not-allowed') {
-        heardElement.innerText = "🎤 Microphone access denied. Please allow mic and try again.";
-        liveTranscriptionElement.innerText = "❌ Microphone access required";
+        heardElement.innerText = "🎤 Microphone access denied.";
+        liveTranscriptionElement.innerText = "❌ Please allow microphone access";
       } else if (e.error === 'no-speech') {
-        heardElement.innerText = "🎤 No speech heard. Tap and speak clearly.";
-        liveTranscriptionElement.innerText = "💬 No speech detected";
+        heardElement.innerText = "🎤 No speech heard. Try again.";
+        // Don't clear transcription
       } else {
         heardElement.innerText = "🎤 Mic error. Tap Start again.";
-        liveTranscriptionElement.innerText = "⚠️ Error, please try again";
       }
       listeningActive = false;
     };
@@ -441,8 +427,6 @@
             try { recognition.start(); } catch(e) {}
           }
         }, 200);
-      } else if (!resetGuard && !listeningActive) {
-        liveTranscriptionElement.innerText = "💬 Ready. Tap Start to spell.";
       }
     };
     
@@ -458,6 +442,7 @@
     }
     heardElement.innerText = "🔄 Resetting...";
     liveTranscriptionElement.innerText = "💬 Resetting...";
+    hintMessageElement.innerText = "";
     setTimeout(() => {
       currentWord = getRandomWord();
       wordElement.innerText = currentWord;
@@ -473,10 +458,12 @@
       heardElement.innerText = "🎤 Already listening!";
       return;
     }
+    liveTranscriptionElement.innerText = "💬 Listening...";
+    hintMessageElement.innerText = "";
     startListening();
   });
   
-  heardElement.innerText = "🎤 Tap 'Start Listening' and spell the word letter by letter";
+  heardElement.innerText = "🎤 Tap 'Start Listening' to begin";
   liveTranscriptionElement.innerText = "💬 Ready. Tap Start to spell.";
 </script>
 </body>
