@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Spelling Practice - Mobile Edition</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      margin: 0;
+      background: linear-gradient(145deg, #f5f7fc 0%, #e9eef4 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.9);
+      border-radius: 40px;
+      padding: 20px 16px 35px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #1e3c72;
+      margin-bottom: 10px;
+    }
+
+    #word {
+      font-size: 48px;
+      font-weight: 800;
+      background: #1e2a3a;
+      display: inline-block;
+      padding: 15px 25px;
+      border-radius: 60px;
+      color: #ffecb3;
+      letter-spacing: 3px;
+      margin: 15px 0;
+      font-family: 'Courier New', monospace;
+      word-break: break-word;
+    }
+
+    #heard {
+      font-size: 22px;
+      margin-top: 20px;
+      padding: 14px 16px;
+      background: #ffffffcc;
+      border-radius: 50px;
+      font-weight: 500;
+      color: #0b2b3b;
+      border: 1px solid #ffffffaa;
+    }
+
+    .status-badge {
+      display: inline-block;
+      background: #2c3e66;
+      color: white;
+      font-size: 14px;
+      border-radius: 100px;
+      padding: 5px 15px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    button {
+      margin-top: 25px;
+      font-size: 18px;
+      padding: 10px 24px;
+      background: #2c5f8a;
+      border: none;
+      color: white;
+      border-radius: 60px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 0 #123456;
+      transition: 0.07s linear;
+    }
+
+    button:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #123456;
+    }
+
+    .mic-button {
+      background: #1e6f3f;
+      box-shadow: 0 4px 0 #0a3b22;
+      font-size: 20px;
+      padding: 14px 28px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="status-badge">📱 SPELL & SPEAK (Mobile)</div>
+  <h1>🔊 Spell the word</h1>
+  <div id="word">-</div>
+  <div id="heard">🎤 Press "Start" to begin</div>
+  <button id="startMicBtn" class="mic-button">🎙️ Start Listening</button>
+  <br>
+  <button onclick="resetListening()">🔄 New Word / Reset</button>
+</div>
+
+<script>
+  // ================= ONLY 10 WORDS =================
+  const words = [
+    "Accurate", "Book", "Computer", "Friend", "Language",
+    "Practice", "School", "Teacher", "Water", "Wisdom"
+  ];
+
+  // Simple variants (optional, kept for flexibility)
+  const variants = {
+    "practice": ["practice","practise"]
+  };
+
+  let currentWord = getRandomWord();
+  let recognition = null;
+  let listeningActive = false;
+  let resetGuard = false;
+
+  const wordElement = document.getElementById("word");
+  const heardElement = document.getElementById("heard");
+  wordElement.innerText = currentWord;
+
+  function getRandomWord() {
+    return words[Math.floor(Math.random() * words.length)];
+  }
+
+  // ========== SIMPLE, MOBILE-FRIENDLY MATCHING ==========
+  function normalizeText(str) {
+    return str.toLowerCase().trim().replace(/[^a-z]/g, '');
+  }
+
+  function isSpellingMatch(transcript, targetWord) {
+    let possibleTargets = variants[targetWord.toLowerCase()] || [targetWord];
+    let cleanTranscript = normalizeText(transcript);
+    
+    for (let tgt of possibleTargets) {
+      let cleanTarget = normalizeText(tgt);
+      
+      // Direct match (letters only)
+      if (cleanTranscript === cleanTarget) return true;
+      
+      // Allow "the a c c u r a t e" → "accurate"
+      let wordsOnly = transcript.toLowerCase().split(/\s+/);
+      let extracted = wordsOnly.map(w => w[0]).join('');
+      if (extracted === cleanTarget) return true;
+      
+      // Basic letter-name mapping (B = bee, C = cee, etc.)
+      let letterMap = {
+        "bee":"b","cee":"c","dee":"d","gee":"g","jay":"j","kay":"k",
+        "pee":"p","cue":"q","are":"r","ess":"s","tee":"t","you":"u",
+        "vee":"v","double":"w","ex":"x","why":"y","zee":"z","aitch":"h",
+        "en":"n","em":"m","oh":"o","eff":"f","ell":"l","eye":"i","see":"c"
+      };
+      let decoded = wordsOnly.map(w => letterMap[w] || w).join('');
+      if (normalizeText(decoded) === cleanTarget) return true;
+    }
+    return false;
+  }
+
+  // ========== START LISTENING (explicit user gesture required on mobile) ==========
+  function startListening() {
+    if (resetGuard) return;
+    
+    // Stop any existing recognition
+    if (recognition) {
+      try { recognition.stop(); } catch(e) {}
+      listeningActive = false;
+    }
+    
+    // Check for browser support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      heardElement.innerText = "❌ Your browser doesn't support voice recognition. Try Chrome or Safari.";
+      return;
+    }
+    
+    recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = false;  // Better for mobile
+    
+    recognition.onstart = () => {
+      listeningActive = true;
+      heardElement.innerText = "🎤 Listening... Speak the spelling";
+    };
+    
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      transcript = transcript.toLowerCase().trim();
+      heardElement.innerHTML = "👂 \"" + transcript + "\"";
+      
+      if (isSpellingMatch(transcript, currentWord)) {
+        heardElement.innerHTML = "✅ Correct! Next word...";
+        currentWord = getRandomWord();
+        wordElement.innerText = currentWord;
+        
+        // Stop and restart for next word
+        if (recognition) {
+          recognition.stop();
+          listeningActive = false;
+        }
+        setTimeout(() => {
+          if (!resetGuard) startListening();
+        }, 500);
+      } else {
+        heardElement.innerHTML = "❌ Try again. Say: " + currentWord.split('').join(' ');
+        setTimeout(() => {
+          if (listeningActive && !resetGuard && recognition) {
+            try { recognition.start(); } catch(e) {}
+          }
+        }, 1200);
+      }
+    };
+    
+    recognition.onerror = (e) => {
+      console.log(e.error);
+      if (e.error === 'not-allowed') {
+        heardElement.innerText = "🎤 Microphone access denied. Please allow mic and try again.";
+      } else if (e.error === 'no-speech') {
+        heardElement.innerText = "🎤 No speech heard. Tap and speak clearly.";
+      } else {
+        heardElement.innerText = "🎤 Mic error. Tap Start again.";
+      }
+      listeningActive = false;
+    };
+    
+    recognition.onend = () => {
+      if (listeningActive && !resetGuard) {
+        // Small delay before restarting
+        setTimeout(() => {
+          if (listeningActive && !resetGuard && recognition) {
+            try { recognition.start(); } catch(e) {}
+          }
+        }, 200);
+      } else {
+        listeningActive = false;
+      }
+    };
+    
+    recognition.start();
+  }
+  
+  // ========== RESET FUNCTION ==========
+  function resetListening() {
+    resetGuard = true;
+    if (recognition) {
+      try { recognition.stop(); } catch(e) {}
+      listeningActive = false;
+    }
+    heardElement.innerText = "🔄 Resetting...";
+    setTimeout(() => {
+      currentWord = getRandomWord();
+      wordElement.innerText = currentWord;
+      resetGuard = false;
+      listeningActive = false;
+      startListening();
+    }, 200);
+  }
+  
+  // ========== USER MUST TAP BUTTON FIRST (required for mobile mic permission) ==========
+  document.getElementById("startMicBtn").addEventListener("click", () => {
+    // Prevent multiple starts
+    if (listeningActive && recognition) {
+      heardElement.innerText = "🎤 Already listening!";
+      return;
+    }
+    startListening();
+  });
+  
+  // Optional: show initial instruction
+  heardElement.innerText = "🎤 Tap 'Start Listening' and spell the word letter by letter";
+</script>
+</body>
+</html>
