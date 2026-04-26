@@ -498,7 +498,6 @@
 
     if (recognition) {
       try { recognition.stop(); } catch(e) {}
-      listeningActive = false;
     }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -585,16 +584,12 @@
     };
 
     recognition.onend = () => {
-      if (listeningActive && !resetGuard) {
-        // if we were supposed to be active (after wrong/correct restart logic we may set flag)
+      if (!resetGuard) {
         setTimeout(() => {
-          if (listeningActive && !resetGuard && recognition) {
-            try { recognition.start(); } catch(e) {}
-          }
-        }, 150);
-      } else if (!resetGuard && !listeningActive && document.getElementById("startMicBtn")) {
-        // idle state
-        liveTranscriptionElement.innerHTML = "💬 Ready. Tap Start to spell.";
+          try {
+            recognition.start();
+          } catch(e) {}
+        }, 200);
       }
     };
 
