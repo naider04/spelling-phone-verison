@@ -271,14 +271,14 @@
 </head>
 <body>
 <div class="container">
-  <div class="status-badge">🎙️ SPELL & SEE MISTAKES</div>
-  <h1>🔤 Spell the word</h1>
+  <div class="status-badge">🐝 SPELLING BEE SIMULATOR 🐝</div>
+  <h1>Your word is</h1>
   <div id="word">-</div>
   
   <!-- MISSPELLING HISTORY (live feedback stack) -->
   <div class="attempts-panel">
     <div class="label-attempts">
-      📋 <span>Incorrect attempts (until correct)</span>
+      📋 <span>Incorrect attempts</span>
     </div>
     <ul id="misspellList">
       <li class="empty-log">✨ No mis-spellings yet. Speak to see attempts.</li>
@@ -286,16 +286,14 @@
   </div>
 
   <div class="live-area">
-    <div style="font-size: 12px; font-weight: bold; text-align: left; color:#2c5a74;">🎤 Live transcription</div>
     <div id="liveTranscription">💬 Tap mic & speak letters</div>
   </div>
   <div id="heard">🎧 Ready — Press Start Listening</div>
   
   <div class="flex-buttons">
-    <button id="startMicBtn" class="mic-button">🎙️ Start Listening</button>
-    <button id="manualNewWordBtn" class="reset-word-btn">✨ New Word</button>
+    <button id="startMicBtn" class="mic-button">🎙️ Start Spelling</button>
+    <button id="manualNewWordBtn" class="reset-word-btn"> New Word </button>
   </div>
-  <div class="small-hint">💡 Spell letter by letter ("a c c u r a t e") or say "i am p r o v e" for 'improve'</div>
 </div>
 
 <script>
