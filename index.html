@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Spelling Practice - Mobile Edition</title>
+  <title>Spelling Practice - Voice Spell & Log</title>
   <style>
     * {
       box-sizing: border-box;
@@ -13,7 +13,7 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       text-align: center;
       margin: 0;
-      background: linear-gradient(145deg, #f5f7fc 0%, #e9eef4 100%);
+      background: linear-gradient(145deg, #f0f4fa 0%, #dce3ec 100%);
       min-height: 100vh;
       padding: 20px;
     }
@@ -21,135 +21,240 @@
     .container {
       max-width: 600px;
       margin: 0 auto;
-      background: rgba(255,255,255,0.9);
-      border-radius: 40px;
-      padding: 20px 16px 35px;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+      background: rgba(255,255,255,0.96);
+      border-radius: 48px;
+      padding: 20px 18px 35px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      backdrop-filter: blur(0px);
     }
 
     h1 {
-      font-size: 1.8rem;
-      color: #1e3c72;
-      margin-bottom: 10px;
+      font-size: 1.7rem;
+      color: #1a3e60;
+      margin: 5px 0 10px;
+      font-weight: 700;
     }
 
     #word {
-      font-size: 48px;
+      font-size: 52px;
       font-weight: 800;
-      background: #1e2a3a;
+      background: #0f2b3b;
       display: inline-block;
-      padding: 15px 25px;
-      border-radius: 60px;
-      color: #ffecb3;
-      letter-spacing: 3px;
-      margin: 15px 0;
+      padding: 14px 28px;
+      border-radius: 80px;
+      color: #fff2cf;
+      letter-spacing: 4px;
+      margin: 12px 0;
       font-family: 'Courier New', monospace;
       word-break: break-word;
+      box-shadow: inset 0 -2px 0 #2e4b6e, 0 6px 12px rgba(0,0,0,0.1);
     }
 
-    #heard {
-      font-size: 20px;
-      margin-top: 15px;
-      padding: 12px 16px;
+    .attempts-panel {
+      background: #fef7e0;
+      border-radius: 32px;
+      margin: 12px 0 12px;
+      padding: 10px 12px;
+      box-shadow: inset 0 0 0 1px #fff9e8, 0 3px 8px rgba(0,0,0,0.05);
+      text-align: left;
+    }
+
+    .label-attempts {
+      font-size: 13px;
+      font-weight: bold;
+      color: #3a5a7a;
+      padding-left: 8px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px dashed #cbd5e1;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+
+    #misspellList {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 180px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+    }
+
+    #misspellList li {
       background: #ffffffcc;
-      border-radius: 50px;
+      margin: 6px 0;
+      padding: 6px 12px;
+      border-radius: 60px;
+      color: #b91c1c;
       font-weight: 500;
-      color: #0b2b3b;
-      border: 1px solid #ffffffaa;
+      word-break: break-word;
+      border-left: 5px solid #cc5a20;
+      background: #fff5ed;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-mistake {
+      background: #e03a3a20;
+      color: #b12a2a;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 2px 8px;
+      border-radius: 30px;
+    }
+
+    .empty-log {
+      color: #6c757d;
+      text-align: center;
+      font-style: italic;
+      padding: 12px;
+      font-size: 14px;
+      background: #f8f9fc;
+      border-radius: 32px;
+    }
+
+    .live-area {
+      background: #eef2ff;
+      border-radius: 38px;
+      padding: 8px 18px;
+      margin: 16px 0 8px;
     }
 
     #liveTranscription {
       font-size: 18px;
-      margin-top: 10px;
-      padding: 10px 16px;
-      background: #e8f0fe;
-      border-radius: 50px;
-      color: #1e3c72;
-      border: 1px dashed #2c5f8a;
+      padding: 8px 0;
+      background: transparent;
+      color: #0a2f44;
       font-family: monospace;
+      font-weight: 500;
       word-break: break-word;
-      min-height: 55px;
+      min-height: 52px;
+    }
+
+    #heard {
+      font-size: 15px;
+      margin: 6px 0 8px;
+      padding: 8px 16px;
+      background: #dee5f0;
+      border-radius: 50px;
+      color: #1f3b4c;
+      font-weight: 500;
     }
 
     .status-badge {
       display: inline-block;
-      background: #2c3e66;
+      background: #215a6e;
       color: white;
-      font-size: 14px;
+      font-size: 13px;
       border-radius: 100px;
-      padding: 5px 15px;
-      margin-bottom: 10px;
-      font-weight: bold;
+      padding: 4px 18px;
+      margin-bottom: 12px;
+      font-weight: 600;
     }
 
     button {
-      margin-top: 25px;
+      margin-top: 20px;
       font-size: 18px;
-      padding: 10px 24px;
-      background: #2c5f8a;
+      padding: 12px 28px;
+      background: #2b6a4c;
       border: none;
       color: white;
-      border-radius: 60px;
+      border-radius: 80px;
       cursor: pointer;
       font-weight: bold;
-      box-shadow: 0 4px 0 #123456;
+      box-shadow: 0 4px 0 #12432e;
       transition: 0.07s linear;
     }
 
     button:active {
       transform: translateY(2px);
-      box-shadow: 0 2px 0 #123456;
+      box-shadow: 0 2px 0 #12432e;
     }
 
     .mic-button {
-      background: #1e6f3f;
-      box-shadow: 0 4px 0 #0a3b22;
+      background: #1f6392;
+      box-shadow: 0 4px 0 #0e3a56;
       font-size: 20px;
-      padding: 14px 28px;
-      margin-top: 10px;
+      padding: 14px 30px;
+      margin-top: 6px;
     }
 
-    .label {
+    .reset-word-btn {
+      background: #5f5c6e;
+      box-shadow: 0 4px 0 #3a3747;
+      margin-left: 12px;
+    }
+
+    .flex-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .small-hint {
       font-size: 12px;
-      color: #666;
-      margin-bottom: 5px;
-      text-align: left;
-      padding-left: 10px;
+      color: #5a626e;
+      margin-top: 6px;
+      background: #eef2fa;
+      display: inline-block;
+      padding: 2px 12px;
+      border-radius: 40px;
     }
   </style>
 </head>
 <body>
 <div class="container">
-  <div class="status-badge">📱 SPELL & SPEAK (Mobile)</div>
-  <h1>🔊 Spell the word</h1>
+  <div class="status-badge">🎙️ SPELL & SEE MISTAKES</div>
+  <h1>🔤 Spell the word</h1>
   <div id="word">-</div>
   
-  <div class="label">🗣️ Real-time transcription:</div>
-  <div id="liveTranscription">💬 Waiting for speech...</div>
+  <!-- MISSPELLING HISTORY (live feedback stack) -->
+  <div class="attempts-panel">
+    <div class="label-attempts">
+      📋 <span>Incorrect attempts (until correct)</span>
+    </div>
+    <ul id="misspellList">
+      <li class="empty-log">✨ No mis-spellings yet. Speak to see attempts.</li>
+    </ul>
+  </div>
+
+  <div class="live-area">
+    <div style="font-size: 12px; font-weight: bold; text-align: left; color:#2c5a74;">🎤 Live transcription</div>
+    <div id="liveTranscription">💬 Tap mic & speak letters</div>
+  </div>
+  <div id="heard">🎧 Ready — Press Start Listening</div>
   
-  <div id="heard">🎤 Tap "Start Listening" to begin</div>
-  
-  <button id="startMicBtn" class="mic-button">🎙️ Start Listening</button>
-  <br>
-  <button onclick="resetListening()">🔄 New Word / Reset</button>
+  <div class="flex-buttons">
+    <button id="startMicBtn" class="mic-button">🎙️ Start Listening</button>
+    <button id="manualNewWordBtn" class="reset-word-btn">✨ New Word</button>
+  </div>
+  <div class="small-hint">💡 Spell letter by letter ("a c c u r a t e") or say "i am p r o v e" for 'improve'</div>
 </div>
 
 <script>
-  // ================= WORD LIST (added improve and predicament) =================
+  // --------------------------------------------------------------
+  // WORD LIST (including improve, predicament)
+  // --------------------------------------------------------------
   const words = [
     "Accurate", "Acknowledgment", "Acquaintance", "Activity", "Adventure", "Always",
     "Ambiguous", "Answer", "Anxious", "Apprehensive", "Architecture", "Articulate",
     "Assertive", "Assimilate", "Astonishing", "Autonomous", "Balance", "Benevolent",
     "Between", "Biochemistry", "Book", "Bored", "Bottle", "Boy", "Break", "Brevity",
-    "Calendar", "Camouflage", "Camouflage", "Capricious", "Career", "Challenge",
+    "Calendar", "Camouflage", "Capricious", "Career", "Challenge",
     "Children", "Close", "Coherence", "Colloquial", "Complete", "Compliance",
-    "Computer", "Conscientious", "Conscientious", "Control", "Controversial",
-    "Controversial", "Convoluted", "Country", "Curious", "Decide", "Dehydration",
+    "Computer", "Conscientious", "Control", "Controversial",
+    "Convoluted", "Country", "Curious", "Decide", "Dehydration",
     "Dilemma", "Disappearance", "Discover", "Discrepancy", "Divulge", "Eloquent",
     "Embarrassing", "Empirical", "Encounter", "Energy", "Enigmatic", "Environmentally",
     "Ephemeral", "Exaggeration", "Face", "Fairness", "Famous", "Father", "Feel",
     "Filmmaker", "Finger", "Flabbergasted", "Flower", "Focus", "Foster", "Friend",
-    "Gate", "Gather", "Handkerchief", "Help", "Honest", "Hypothetical", "Hypothetical",
+    "Gate", "Gather", "Handkerchief", "Help", "Honest", "Hypothetical",
     "Imagine", "Impeccable", "Importune", "Improve", "Independence", "Indispensable",
     "Ineffable", "Irreplaceable", "Journey", "Judgemental", "Knowledge", "Knowledgeable",
     "Language", "Look", "Make", "Member", "Message", "Meticulous", "Misunderstood",
@@ -176,17 +281,54 @@
   let listeningActive = false;
   let resetGuard = false;
 
+  // ----- MISTAKE HISTORY (array of strings) -----
+  let mistakeLog = [];   // store each incorrect spoken phrase (raw or normalized)
+  
   const wordElement = document.getElementById("word");
   const heardElement = document.getElementById("heard");
   const liveTranscriptionElement = document.getElementById("liveTranscription");
-  wordElement.innerText = currentWord;
+  const misspellListEl = document.getElementById("misspellList");
 
   function getRandomWord() {
     return words[Math.floor(Math.random() * words.length)];
   }
 
-  // ========== ENHANCED PHONETIC CONFUSION GROUPS ==========
-  // Groups of letters that sound similar (expanded for better recognition)
+  // Render the mis-spelling list (one under another, resets on correct)
+  function renderMistakeLog() {
+    misspellListEl.innerHTML = "";
+    if (mistakeLog.length === 0) {
+      const emptyLi = document.createElement("li");
+      emptyLi.className = "empty-log";
+      emptyLi.innerText = "✅ No mistakes — speak clearly!";
+      misspellListEl.appendChild(emptyLi);
+      return;
+    }
+    // show each mistake with a small icon
+    mistakeLog.forEach((mistakeText, idx) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="badge-mistake">✘ ${idx+1}</span> <span style="flex:1; word-break:break-word;">“${mistakeText}”</span>`;
+      misspellListEl.appendChild(li);
+    });
+    // auto scroll to bottom
+    misspellListEl.scrollTop = misspellListEl.scrollHeight;
+  }
+
+  // Clear mistake history when correct answer occurs
+  function resetMistakeHistory() {
+    mistakeLog = [];
+    renderMistakeLog();
+  }
+
+  // Add a new mis-spelling to the log (called when attempt fails)
+  function addMisSpelling(spokenPhrase) {
+    if (!spokenPhrase || spokenPhrase.trim() === "") return;
+    // we store a cleaned version but keep original for readability
+    let displayText = spokenPhrase.length > 55 ? spokenPhrase.substring(0, 52) + "..." : spokenPhrase;
+    mistakeLog.push(displayText);
+    renderMistakeLog();
+  }
+
+  // ========== PHONETIC CONFUSION GROUPS (enhanced matching) ==========
   function getConfusionGroup(letter) {
     const groups = {
       'b': ['b', 'p', 'v', 'd'],
@@ -222,169 +364,160 @@
     return true;
   }
 
-  // ========== ENHANCED NORMALIZATION ==========
   function normalizeText(str) {
     return str.toLowerCase().trim().replace(/[^a-z]/g, '');
   }
 
-  // Special handling for "i am" + letters and "im" + letters
+  // handle "i am p r o v e" or "i m p r o v e"
   function handleImPattern(transcript, targetWord) {
     const lowerTarget = targetWord.toLowerCase();
-    
-    // Pattern 1: "i am p r o v e" → "improve"
+    if (!lowerTarget.startsWith('im')) return false;
     const iamMatch = transcript.match(/^\s*i\s+am\s+(.+)$/i);
     if (iamMatch) {
       let afterIam = iamMatch[1].trim();
       let letters = afterIam.split(/\s+/).map(part => part[0].toLowerCase()).join('');
-      let expectedLetters = lowerTarget.substring(2); // remove "im"
-      if (compareLetterSequences(letters.split(''), expectedLetters.split(''))) {
-        return true;
-      }
+      let expectedLetters = lowerTarget.substring(2);
+      if (compareLetterSequences(letters.split(''), expectedLetters.split(''))) return true;
     }
-    
-    // Pattern 2: "i m p r o v e" (letters only, no "am")
     const imMatch = transcript.match(/^\s*i\s+m\s+(.+)$/i);
     if (imMatch) {
       let afterIm = imMatch[1].trim();
       let letters = afterIm.split(/\s+/).map(part => part[0].toLowerCase()).join('');
-      let expectedLetters = lowerTarget.substring(2); // remove "im"
-      if (compareLetterSequences(letters.split(''), expectedLetters.split(''))) {
-        return true;
-      }
+      let expectedLetters = lowerTarget.substring(2);
+      if (compareLetterSequences(letters.split(''), expectedLetters.split(''))) return true;
     }
-    
     return false;
   }
 
-  // Handle generic patterns like "the a c c u r a t e" → "accurate"
   function handleThePattern(transcript, targetWord) {
     const theMatch = transcript.match(/^\s*the\s+(.+)$/i);
     if (theMatch) {
       let afterThe = theMatch[1].trim();
       let letters = afterThe.split(/\s+/).map(part => part[0].toLowerCase()).join('');
       let expectedLetters = targetWord.toLowerCase();
-      if (compareLetterSequences(letters.split(''), expectedLetters.split(''))) {
-        return true;
-      }
+      if (compareLetterSequences(letters.split(''), expectedLetters.split(''))) return true;
     }
     return false;
   }
 
-  // Handle generic letter-by-letter spelling with possible "the" at beginning
   function handleLetterByLetterSpelling(transcript, targetWord) {
-    // Remove any leading "the" if present
     let cleanTranscript = transcript.replace(/^\s*the\s+/i, '').trim();
     let spokenLetters = cleanTranscript.split(/\s+/).map(part => part[0].toLowerCase());
     let targetLetters = targetWord.toLowerCase().split('');
-    
-    if (spokenLetters.length === targetLetters.length) {
-      if (compareLetterSequences(spokenLetters, targetLetters)) {
-        return true;
-      }
-    }
-    
+    if (spokenLetters.length === targetLetters.length && compareLetterSequences(spokenLetters, targetLetters)) return true;
     return false;
   }
 
-  // Letter name mapping (bee → b, cee → c, etc.)
   function decodeLetterNames(transcript) {
     const letterMap = {
-      "bee":"b", "cee":"c", "dee":"d", "gee":"g", "jay":"j", "kay":"k",
-      "pee":"p", "cue":"q", "are":"r", "ess":"s", "tee":"t", "you":"u",
-      "vee":"v", "double":"w", "ex":"x", "why":"y", "zee":"z", "zed":"z",
-      "aitch":"h", "en":"n", "em":"m", "oh":"o", "eff":"f", "ell":"l", "eye":"i", "see":"c",
-      "double-u":"w"
+      "bee":"b","cee":"c","dee":"d","gee":"g","jay":"j","kay":"k","pee":"p","cue":"q",
+      "are":"r","ess":"s","tee":"t","you":"u","vee":"v","double":"w","ex":"x","why":"y",
+      "zee":"z","zed":"z","aitch":"h","en":"n","em":"m","oh":"o","eff":"f","ell":"l",
+      "eye":"i","see":"c","double-u":"w"
     };
-    
-    let words = transcript.toLowerCase().split(/\s+/);
-    let decoded = words.map(w => letterMap[w] || w).join('');
+    let wordsSpoken = transcript.toLowerCase().split(/\s+/);
+    let decoded = wordsSpoken.map(w => letterMap[w] || w).join('');
     return decoded;
   }
 
-  // ========== MAIN MATCHING FUNCTION ==========
+  // main spelling matching logic
   function isSpellingMatch(transcript, targetWord) {
     let possibleTargets = variants[targetWord.toLowerCase()] || [targetWord];
     let cleanTranscriptFull = transcript.toLowerCase().trim();
-    
     for (let tgt of possibleTargets) {
       let lowerTgt = tgt.toLowerCase();
-      
-      // 1. Direct exact match
       if (normalizeText(cleanTranscriptFull) === lowerTgt) return true;
-      
-      // 2. "i am p r o v e" or "i m p r o v e" pattern for words starting with "im"
-      if (lowerTgt.startsWith('im') && handleImPattern(cleanTranscriptFull, lowerTgt)) {
-        return true;
-      }
-      
-      // 3. "the a c c u r a t e" pattern for any word
-      if (handleThePattern(cleanTranscriptFull, lowerTgt)) {
-        return true;
-      }
-      
-      // 4. Simple letter-by-letter spelling (each word's first letter)
-      if (handleLetterByLetterSpelling(cleanTranscriptFull, lowerTgt)) {
-        return true;
-      }
-      
-      // 5. Letter name decoding (bee, cee, dee, etc.)
+      if (lowerTgt.startsWith('im') && handleImPattern(cleanTranscriptFull, lowerTgt)) return true;
+      if (handleThePattern(cleanTranscriptFull, lowerTgt)) return true;
+      if (handleLetterByLetterSpelling(cleanTranscriptFull, lowerTgt)) return true;
       let decodedLetters = decodeLetterNames(cleanTranscriptFull);
       if (normalizeText(decodedLetters) === lowerTgt) return true;
-      
-      // 6. Direct letter sequence comparison (no spaces)
       let spokenLettersNoSpaces = cleanTranscriptFull.replace(/\s+/g, '').toLowerCase();
-      if (spokenLettersNoSpaces.length === lowerTgt.length) {
-        if (compareLetterSequences(spokenLettersNoSpaces.split(''), lowerTgt.split(''))) {
-          return true;
-        }
-      }
-      
-      // 7. First letters of words in transcript (flexible pattern with possible "the")
+      if (spokenLettersNoSpaces.length === lowerTgt.length && compareLetterSequences(spokenLettersNoSpaces.split(''), lowerTgt.split(''))) return true;
       let wordsOnly = cleanTranscriptFull.split(/\s+/);
-      // Skip first word if it's "the" for this check too
       let startIdx = (wordsOnly[0] === 'the') ? 1 : 0;
       let extracted = wordsOnly.slice(startIdx).map(w => w[0]).join('');
-      if (extracted.length === lowerTgt.length) {
-        if (compareLetterSequences(extracted.split(''), lowerTgt.split(''))) {
-          return true;
-        }
-      }
+      if (extracted.length === lowerTgt.length && compareLetterSequences(extracted.split(''), lowerTgt.split(''))) return true;
     }
-    
     return false;
   }
 
-  // ========== START LISTENING ==========
-  function startListening() {
-    if (resetGuard) return;
-    
+  // ----- generate hint message for wrong attempt -----
+  function getHintMessage(word) {
+    let letters = word.split('').join(' ');
+    if (word.toLowerCase().startsWith('im')) {
+      return `Try: "i am ${word.substring(2).split('').join(' ')}" or spell letters: ${letters}`;
+    }
+    return `Say letters like: ${letters}`;
+  }
+
+  // ----- CORRECT HANDLER (resets mistake history, new word, auto-restart)-----
+  function onCorrectSpelling() {
+    // clear mistake list because correct answer achieved
+    resetMistakeHistory();
+    heardElement.innerHTML = "✅ Perfect! Next word...";
+    liveTranscriptionElement.innerHTML = "🎉 Correct! Getting new word...";
+    // pick new random word
+    currentWord = getRandomWord();
+    wordElement.innerText = currentWord;
+    // stop current recognition to avoid overlap
     if (recognition) {
       try { recognition.stop(); } catch(e) {}
       listeningActive = false;
     }
-    
+    // restart listening after short delay
+    setTimeout(() => {
+      if (!resetGuard) {
+        startListening();
+      }
+    }, 500);
+  }
+
+  // ---- WRONG HANDLER: capture spoken attempt & push to log, show hint ----
+  function onWrongSpelling(spokenTranscript) {
+    // spokenTranscript is the final transcript string (already cleaned but we keep raw)
+    if (!spokenTranscript || spokenTranscript.trim() === "") return;
+    // add to mistake log
+    addMisSpelling(spokenTranscript);
+    let hintMsg = getHintMessage(currentWord);
+    heardElement.innerHTML = `❌ Not correct. ${hintMsg}`;
+    liveTranscriptionElement.innerHTML = `⚠️ “${spokenTranscript}” — try again`;
+    // keep listening automatically — recognition will restart but we don't stop continuous
+    // However, recognition may have ended after result; we will ensure it keeps running in onend
+  }
+
+  // ---------- SPEECH RECOGNITION SETUP ----------
+  function startListening() {
+    if (resetGuard) return;
+
+    if (recognition) {
+      try { recognition.stop(); } catch(e) {}
+      listeningActive = false;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      heardElement.innerText = "❌ Your browser doesn't support voice recognition. Try Chrome or Safari.";
-      liveTranscriptionElement.innerText = "❌ Browser not supported";
+      heardElement.innerText = "❌ Voice recognition not supported. Use Chrome/Safari.";
+      liveTranscriptionElement.innerText = "❌ Browser incompatible";
       return;
     }
-    
+
     recognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = true;
     recognition.continuous = false;
-    
+    recognition.maxAlternatives = 1;
+
     recognition.onstart = () => {
       listeningActive = true;
-      heardElement.innerText = "🎤 Listening... Speak the spelling";
-      liveTranscriptionElement.innerText = "💬 Say each letter...";
+      heardElement.innerText = "🎤 Listening — spell the word clearly";
+      liveTranscriptionElement.innerText = "💬 Speak letters...";
     };
-    
+
     recognition.onresult = (event) => {
       let finalTranscript = "";
       let interimTranscript = "";
-      
+
       for (let i = 0; i < event.results.length; i++) {
         let result = event.results[i];
         if (result.isFinal) {
@@ -393,106 +526,115 @@
           interimTranscript += result[0].transcript;
         }
       }
-      
-      let fullText = (interimTranscript + finalTranscript).toLowerCase().trim();
-      if (fullText) {
-        liveTranscriptionElement.innerHTML = "🗣️ " + fullText;
+
+      let displayFull = (interimTranscript + finalTranscript).toLowerCase().trim();
+      if (displayFull) {
+        liveTranscriptionElement.innerHTML = "🗣️ " + displayFull;
       } else {
         liveTranscriptionElement.innerHTML = "💬 Listening...";
       }
-      
+
+      // Process only final transcript for correctness
       if (finalTranscript) {
-        let transcript = finalTranscript.toLowerCase().trim();
-        heardElement.innerHTML = "👂 \"" + transcript + "\"";
+        let spokenRaw = finalTranscript.trim();
+        let transcriptNormalized = spokenRaw.toLowerCase();
+        heardElement.innerHTML = `👂 "${spokenRaw}"`;
+
+        const isCorrect = isSpellingMatch(transcriptNormalized, currentWord);
         
-        if (isSpellingMatch(transcript, currentWord)) {
-          heardElement.innerHTML = "✅ Correct! Next word...";
-          liveTranscriptionElement.innerHTML = "🎉 Correct! Getting new word...";
-          currentWord = getRandomWord();
-          wordElement.innerText = currentWord;
-          
+        if (isCorrect) {
+          // CORRECT: reset mistake history, get new word, auto-restart
           if (recognition) {
-            recognition.stop();
+            recognition.stop(); // stop current session to avoid double calls
             listeningActive = false;
           }
-          setTimeout(() => {
-            if (!resetGuard) startListening();
-          }, 500);
+          onCorrectSpelling();
         } else {
-          // Show hint with expected spelling pattern
-          let hint = currentWord.split('').join(' ');
-          if (currentWord.toLowerCase().startsWith('im')) {
-            hint = "Try: i am " + currentWord.substring(2).split('').join(' ') + " or just spell the letters";
+          // WRONG: store the spoken attempt into history (above transcription box)
+          onWrongSpelling(spokenRaw);
+          // After wrong attempt, we don't reset recognition; we restart it in onend to keep listening
+          // Manually stop and restart for clean new attempt session
+          if (recognition) {
+            try { recognition.stop(); } catch(e) {}
+            listeningActive = false;
           }
-          heardElement.innerHTML = "❌ Try again. Say: " + hint;
-          setTimeout(() => {
-            if (listeningActive && !resetGuard && recognition) {
-              try { recognition.start(); } catch(e) {}
-            }
-          }, 1200);
+          // will restart after onend triggers
         }
       }
     };
-    
+
     recognition.onerror = (e) => {
-      console.log(e.error);
+      console.warn(e.error);
       if (e.error === 'not-allowed') {
-        heardElement.innerText = "🎤 Microphone access denied. Please allow mic and try again.";
-        liveTranscriptionElement.innerText = "❌ Microphone access required";
+        heardElement.innerText = "🎤 Microphone blocked. Allow access and retry.";
+        liveTranscriptionElement.innerText = "❌ Mic permission denied";
       } else if (e.error === 'no-speech') {
-        heardElement.innerText = "🎤 No speech heard. Tap and speak clearly.";
-        liveTranscriptionElement.innerText = "💬 No speech detected";
+        heardElement.innerText = "🎤 No speech detected. Tap and speak clearly.";
+        liveTranscriptionElement.innerText = "💬 No speech";
       } else {
         heardElement.innerText = "🎤 Mic error. Tap Start again.";
-        liveTranscriptionElement.innerText = "⚠️ Error, please try again";
+        liveTranscriptionElement.innerText = "⚠️ Recognition error";
       }
       listeningActive = false;
     };
-    
+
     recognition.onend = () => {
       if (listeningActive && !resetGuard) {
+        // if we were supposed to be active (after wrong/correct restart logic we may set flag)
         setTimeout(() => {
           if (listeningActive && !resetGuard && recognition) {
             try { recognition.start(); } catch(e) {}
           }
-        }, 200);
-      } else if (!resetGuard && !listeningActive) {
-        liveTranscriptionElement.innerText = "💬 Ready. Tap Start to spell.";
+        }, 150);
+      } else if (!resetGuard && !listeningActive && document.getElementById("startMicBtn")) {
+        // idle state
+        liveTranscriptionElement.innerHTML = "💬 Ready. Tap Start to spell.";
       }
     };
-    
+
     recognition.start();
   }
-  
-  // ========== RESET FUNCTION ==========
-  function resetListening() {
+
+  // ---------- NEW WORD (manual) same as resetting word without clearing history BUT also resets mistake log? 
+  // According to intention: "New Word / Reset" replaced with New Word button. Should reset mis-spelling history because new word brings fresh start.
+  function manualNewWord() {
+    if (resetGuard) return;
     resetGuard = true;
     if (recognition) {
       try { recognition.stop(); } catch(e) {}
       listeningActive = false;
     }
-    heardElement.innerText = "🔄 Resetting...";
-    liveTranscriptionElement.innerText = "💬 Resetting...";
-    setTimeout(() => {
-      currentWord = getRandomWord();
-      wordElement.innerText = currentWord;
-      resetGuard = false;
-      listeningActive = false;
-      startListening();
-    }, 200);
+    // reset mistake log (fresh start for new word)
+    mistakeLog = [];
+    renderMistakeLog();
+    currentWord = getRandomWord();
+    wordElement.innerText = currentWord;
+    heardElement.innerText = "🔁 New word loaded! Tap Start Listening.";
+    liveTranscriptionElement.innerText = "💬 Ready for new word";
+    resetGuard = false;
+    listeningActive = false;
+    // not automatically starting — user can press mic
   }
-  
-  // ========== INITIALIZATION ==========
+
+  // ========== EVENT LISTENERS ==========
   document.getElementById("startMicBtn").addEventListener("click", () => {
+    if (resetGuard) return;
     if (listeningActive && recognition) {
       heardElement.innerText = "🎤 Already listening!";
       return;
     }
     startListening();
   });
-  
-  heardElement.innerText = "🎤 Tap 'Start Listening' and spell the word letter by letter";
-  liveTranscriptionElement.innerText = "💬 Ready. Tap Start to spell.";
+
+  document.getElementById("manualNewWordBtn").addEventListener("click", () => {
+    manualNewWord();
+  });
+
+  // initialize display
+  wordElement.innerText = currentWord;
+  resetMistakeHistory();
+  heardElement.innerText = "🎤 Tap 'Start Listening' & spell letter-by-letter";
+  liveTranscriptionElement.innerText = "💬 Ready to spell";
 </script>
 </body>
 </html>
