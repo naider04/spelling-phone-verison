@@ -48,14 +48,27 @@
     }
 
     #heard {
-      font-size: 22px;
-      margin-top: 20px;
-      padding: 14px 16px;
+      font-size: 20px;
+      margin-top: 15px;
+      padding: 12px 16px;
       background: #ffffffcc;
       border-radius: 50px;
       font-weight: 500;
       color: #0b2b3b;
       border: 1px solid #ffffffaa;
+    }
+
+    #liveTranscription {
+      font-size: 18px;
+      margin-top: 10px;
+      padding: 10px 16px;
+      background: #e8f0fe;
+      border-radius: 50px;
+      color: #1e3c72;
+      border: 1px dashed #2c5f8a;
+      font-family: monospace;
+      word-break: break-word;
+      min-height: 55px;
     }
 
     .status-badge {
@@ -95,6 +108,14 @@
       padding: 14px 28px;
       margin-top: 10px;
     }
+
+    .label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 5px;
+      text-align: left;
+      padding-left: 10px;
+    }
   </style>
 </head>
 <body>
@@ -102,7 +123,12 @@
   <div class="status-badge">📱 SPELL & SPEAK (Mobile)</div>
   <h1>🔊 Spell the word</h1>
   <div id="word">-</div>
-  <div id="heard">🎤 Press "Start" to begin</div>
+  
+  <div class="label">🗣️ Real-time transcription:</div>
+  <div id="liveTranscription">💬 Waiting for speech...</div>
+  
+  <div id="heard">🎤 Tap "Start Listening" to begin</div>
+  
   <button id="startMicBtn" class="mic-button">🎙️ Start Listening</button>
   <br>
   <button onclick="resetListening()">🔄 New Word / Reset</button>
@@ -111,32 +137,8 @@
 <script>
   // ================= ONLY 10 WORDS =================
   const words = [
-    "Accurate", "Acknowledgment", "Acquaintance", "Activity", "Adventure", "Always",
-    "Ambiguous", "Answer", "Anxious", "Apprehensive", "Architecture", "Articulate",
-    "Assertive", "Assimilate", "Astonishing", "Autonomous", "Balance", "Benevolent",
-    "Between", "Biochemistry", "Book", "Bored", "Bottle", "Boy", "Break", "Brevity",
-    "Calendar", "Camouflage", "Camouflage", "Capricious", "Career", "Challenge",
-    "Children", "Close", "Coherence", "Colloquial", "Complete", "Compliance",
-    "Computer", "Conscientious", "Conscientious", "Control", "Controversial",
-    "Controversial", "Convoluted", "Country", "Curious", "Decide", "Dehydration",
-    "Dilemma", "Disappearance", "Discover", "Discrepancy", "Divulge", "Eloquent",
-    "Embarrassing", "Empirical", "Encounter", "Energy", "Enigmatic", "Environmentally",
-    "Ephemeral", "Exaggeration", "Face", "Fairness", "Famous", "Father", "Feel",
-    "Filmmaker", "Finger", "Flabbergasted", "Flower", "Focus", "Foster", "Friend",
-    "Gate", "Gather", "Handkerchief", "Help", "Honest", "Hypothetical", "Hypothetical",
-    "Imagine", "Impeccable", "Importune", "Improve", "Independence", "Indispensable",
-    "Ineffable", "Irreplaceable", "Journey", "Judgemental", "Knowledge", "Knowledgeable",
-    "Language", "Look", "Make", "Member", "Message", "Meticulous", "Misunderstood",
-    "Monday", "Movie", "Nature", "Near", "Neighborhood", "Night", "Notebook", "Notice",
-    "Observe", "Obsolete", "Often", "Outside", "Overwhelming", "Package", "Paradox",
-    "Patient", "Pencil", "People", "Perfect", "Perseverance", "Plausible", "Play",
-    "Please", "Popular", "Potato", "Practice", "Pragmatic", "Predicament", "Prepare",
-    "Present", "Protect", "Provide", "Psychologist", "Quarantine", "Quickly", "Reason",
-    "Recommendable", "Redundant", "Reiterate", "Resilient", "Respect", "Result", "Rich",
-    "School", "Secret", "Serious", "Shoes", "Small", "Sophisticated", "Speak", "Special",
-    "Spontaneous", "Spoon", "Sport", "Strong", "Student", "Subtle", "Suggest", "Talent",
-    "Taxonomy", "Teacher", "Think", "Travel", "Tree", "Unbelievable", "Unnecessary",
-    "Useful", "Vacation", "Wash", "Water", "Welcome", "Wisdom", "Yesterday"
+    "Accurate", "Book", "Computer", "Friend", "Language",
+    "Practice", "School", "Teacher", "Water", "Wisdom"
   ];
 
   // Simple variants (optional, kept for flexibility)
@@ -151,6 +153,7 @@
 
   const wordElement = document.getElementById("word");
   const heardElement = document.getElementById("heard");
+  const liveTranscriptionElement = document.getElementById("liveTranscription");
   wordElement.innerText = currentWord;
 
   function getRandomWord() {
@@ -204,47 +207,70 @@
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       heardElement.innerText = "❌ Your browser doesn't support voice recognition. Try Chrome or Safari.";
+      liveTranscriptionElement.innerText = "❌ Browser not supported";
       return;
     }
     
     recognition = new SpeechRecognition();
     recognition.lang = "en-US";
-    recognition.interimResults = true;
+    recognition.interimResults = true;  // Allows real-time updates
     recognition.continuous = false;  // Better for mobile
     
     recognition.onstart = () => {
       listeningActive = true;
       heardElement.innerText = "🎤 Listening... Speak the spelling";
+      liveTranscriptionElement.innerText = "💬 Say each letter...";
     };
     
     recognition.onresult = (event) => {
-      let transcript = "";
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
-      }
-      transcript = transcript.toLowerCase().trim();
-      heardElement.innerHTML = "👂 \"" + transcript + "\"";
+      let finalTranscript = "";
+      let interimTranscript = "";
       
-      if (isSpellingMatch(transcript, currentWord)) {
-        heardElement.innerHTML = "✅ Correct! Next word...";
-        currentWord = getRandomWord();
-        wordElement.innerText = currentWord;
-        
-        // Stop and restart for next word
-        if (recognition) {
-          recognition.stop();
-          listeningActive = false;
+      for (let i = 0; i < event.results.length; i++) {
+        let result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript;
+        } else {
+          interimTranscript += result[0].transcript;
         }
-        setTimeout(() => {
-          if (!resetGuard) startListening();
-        }, 500);
+      }
+      
+      // Show real-time transcription (interim + final)
+      let fullText = (interimTranscript + finalTranscript).toLowerCase().trim();
+      if (fullText) {
+        liveTranscriptionElement.innerHTML = "🗣️ " + fullText;
       } else {
-        heardElement.innerHTML = "❌ Try again. Say: " + currentWord.split('').join(' ');
-        setTimeout(() => {
-          if (listeningActive && !resetGuard && recognition) {
-            try { recognition.start(); } catch(e) {}
+        liveTranscriptionElement.innerHTML = "💬 Listening...";
+      }
+      
+      // Process final result for validation
+      if (finalTranscript) {
+        let transcript = finalTranscript.toLowerCase().trim();
+        heardElement.innerHTML = "👂 \"" + transcript + "\"";
+        
+        if (isSpellingMatch(transcript, currentWord)) {
+          heardElement.innerHTML = "✅ Correct! Next word...";
+          liveTranscriptionElement.innerHTML = "🎉 Correct! Getting new word...";
+          currentWord = getRandomWord();
+          wordElement.innerText = currentWord;
+          
+          // Stop and restart for next word
+          if (recognition) {
+            recognition.stop();
+            listeningActive = false;
           }
-        }, 1200);
+          setTimeout(() => {
+            if (!resetGuard) startListening();
+          }, 500);
+        } else {
+          heardElement.innerHTML = "❌ Try again. Say: " + currentWord.split('').join(' ');
+          // Keep live transcription visible, don't clear it
+          setTimeout(() => {
+            if (listeningActive && !resetGuard && recognition) {
+              try { recognition.start(); } catch(e) {}
+            }
+          }, 1200);
+        }
       }
     };
     
@@ -252,10 +278,13 @@
       console.log(e.error);
       if (e.error === 'not-allowed') {
         heardElement.innerText = "🎤 Microphone access denied. Please allow mic and try again.";
+        liveTranscriptionElement.innerText = "❌ Microphone access required";
       } else if (e.error === 'no-speech') {
         heardElement.innerText = "🎤 No speech heard. Tap and speak clearly.";
+        liveTranscriptionElement.innerText = "💬 No speech detected";
       } else {
         heardElement.innerText = "🎤 Mic error. Tap Start again.";
+        liveTranscriptionElement.innerText = "⚠️ Error, please try again";
       }
       listeningActive = false;
     };
@@ -268,8 +297,8 @@
             try { recognition.start(); } catch(e) {}
           }
         }, 200);
-      } else {
-        listeningActive = false;
+      } else if (!resetGuard && !listeningActive) {
+        liveTranscriptionElement.innerText = "💬 Ready. Tap Start to spell.";
       }
     };
     
@@ -284,6 +313,7 @@
       listeningActive = false;
     }
     heardElement.innerText = "🔄 Resetting...";
+    liveTranscriptionElement.innerText = "💬 Resetting...";
     setTimeout(() => {
       currentWord = getRandomWord();
       wordElement.innerText = currentWord;
@@ -305,6 +335,7 @@
   
   // Optional: show initial instruction
   heardElement.innerText = "🎤 Tap 'Start Listening' and spell the word letter by letter";
+  liveTranscriptionElement.innerText = "💬 Ready. Tap Start to spell.";
 </script>
 </body>
 </html>
